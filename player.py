@@ -1,5 +1,4 @@
 from buildings import Building, Village, City, Road
-import gamestate
 
 class Player():
     MAX_VILLAGES = 5
@@ -17,20 +16,30 @@ class Player():
             'roads': 0
         }
         self.resources = {'wood': 0, 'brick': 0, 'sheep': 0, 'grain': 0, 'ore': 0}
+
+    def get_name(self) -> str:
+        return self.name
     
-    def add_building(self, building: Building) -> None:
+    def add_building(self, building: Building, game_state) -> None:
         if isinstance(building, Village):
-            if self.buildings['villages'] < Player.MAX_VILLAGES:
+            if self.buildings['villages'] < self.MAX_VILLAGES:
                 self.buildings['villages'] += 1
                 self.points += 1
         elif isinstance(building, City):
-            if self.buildings['cities'] < Player.MAX_CITIES and self.buildings['villages'] > 0:
+            if self.buildings['cities'] < self.MAX_CITIES and self.buildings['villages'] > 0:
                 self.buildings['cities'] += 1
                 self.buildings['villages'] -= 1
                 self.points += 1
         elif isinstance(building, Road):    
             self.buildings['roads'] += 1
-            '''If you have the most roads in a game and more than 3 you get +2 points,
-                at the same time, if someone will surpass you, you lose 2 points'''
+            game_state.player_with_longest_roads_update(self)
+
+    
+    def get_buildings(self, building) -> int:
+        return self.buildings[building]
+    
+    def get_recources(self, recourse) -> int:
+        return self.resources[recourse]
+    
 
                 
