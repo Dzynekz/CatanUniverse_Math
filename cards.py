@@ -10,15 +10,28 @@ class Deck():
     def _initialize_deck(self) -> list:
         cards = []
         for _ in range(25):
-            cards.append(Card())
+            card = Unknown()
+            cards.append(card)
         return cards
     
     def __str__(self) -> str:
         return (f"Deck: {len(self.cards)} cards remaining")
 
+    def get_card(self):
+        if len(self.cards) > 0:
+            return self.cards.pop()
+
+
 class Card():
+    COST = {'sheep':1, 'grain':1, 'ore':1}
+
     def __init__(self) -> None:
         pass
+
+class Unknown(Card):
+    '''You don't know what kind of card other players have'''
+    def __init__(self) -> None:
+        super().__init__()   
 
 class VictoryPoint(Card):
     '''Gives one victory point'''
@@ -30,7 +43,7 @@ class Knight(Card):
     If you have most knights in game (starting from 3) you get 2 points'''
     def __init__(self) -> None:
         super().__init__()
-
+    
 class RoadBuilding(Card):
     '''Gives 2 roads
      If you have most roads in game (starting from 3) you get 2 points'''
