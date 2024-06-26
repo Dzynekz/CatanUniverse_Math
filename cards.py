@@ -1,3 +1,21 @@
+class Deck():
+    def __init__(self) -> None:
+        self.cards = self._initialize_deck()
+        self.knights = 14
+        self.victorypoints = 5
+        self.yearofplenty = 2
+        self.roadbuilding = 2
+        self.monopolty = 2
+
+    def _initialize_deck(self) -> list:
+        cards = []
+        for _ in range(25):
+            cards.append(Card())
+        return cards
+    
+    def __str__(self) -> str:
+        return (f"Deck: {len(self.cards)} cards remaining")
+
 class Card():
     def __init__(self) -> None:
         pass
