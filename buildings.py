@@ -9,7 +9,7 @@ class Village(Building):
         super().__init__(Village.COST)
 
 class City(Building):
-    COST = {'wood':1,'brick':1,'sheep':1, 'grain':3,'ore':3}
+    COST = {'grain':2,'ore':3}
 
     def __init__(self) -> None:
         super().__init__(City.COST)
