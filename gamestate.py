@@ -5,6 +5,17 @@ class GameState():
         self.players = []
         self.player_with_longest_road = None
         self.player_with_most_knights = None
+
+    def add_board(self) -> dict:
+        '''For now I am not doing class for board'''
+        board = {
+            'wood': [6,3,12,10],
+            'brick': [11,2,8],
+            'sheep': [8,6,4,9],
+            'grain':[5,9,4,10],
+            'ore': [3,11,5]
+        }
+        return board
     
     def add_player(self, name: str) -> None:
         new_player = Player(name)
