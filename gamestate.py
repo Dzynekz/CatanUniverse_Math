@@ -1,25 +1,24 @@
 from player import Player
+from board import Board
 
 class GameState():
     def __init__(self) -> None:
         self.players = []
+        self.round = 1
         self.player_with_longest_road = None
         self.player_with_most_knights = None
 
+    def add_round(self) -> None:
+        self.round +=1
+
     def add_board(self) -> dict:
-        '''For now I am not doing class for board'''
-        board = {
-            'wood': [6,3,12,10],
-            'brick': [11,2,8],
-            'sheep': [8,6,4,9],
-            'grain':[5,9,4,10],
-            'ore': [3,11,5]
-        }
+        board = Board()
         return board
     
-    def add_player(self, name: str) -> None:
-        new_player = Player(name)
+    def add_player(self, name: str, color: str) -> None:
+        new_player = Player(name, color)
         self.players.append(new_player)
+        return new_player
     
     def get_player(self, name: str) -> Player:
         for player in self.players:
@@ -47,13 +46,3 @@ class GameState():
             if old_player:
                 old_player.points -= 2
             player.points += 2
-
-
-
-
-
-    
-    '''def get_player_with_most_roads(self) -> Player:
-        if not self.players:
-            return None
-        return max(self.players, key=lambda player: player.buildings['roads'])'''
