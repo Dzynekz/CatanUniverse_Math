@@ -1,13 +1,16 @@
 from buildings import Building, Village, City, Road
-from cards import Deck, Card, Unknown, Knight, VictoryPoint, Monopoly, YearOfPlenty, RoadBuilding
+from cards import Card, Unknown, Knight, VictoryPoint, Monopoly, YearOfPlenty, RoadBuilding
+from deck import Deck
+from board import Board
 
 class Player():
     MAX_VILLAGES = 5
     MAX_CITIES = 4
     MAX_ROADS = 15
     
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, color: str) -> None:
         self.name = name
+        self.color = color
         self.points = 0
         self.victory_point_cards = 0
         self.knights = 0
@@ -21,6 +24,9 @@ class Player():
 
     def get_name(self) -> str:
         return self.name
+    
+    def get_color(self) -> str:
+        return self.color
     
     def get_points(self) -> int:
         return self.points
@@ -51,30 +57,38 @@ class Player():
                 self.resources[key] -= resources_needed[key]
         return True
                
-    def add_building(self, building: Building, game_state) -> None:
+    def add_building(self, building: Building, game_state, board: Board, node1, node2=0) -> None:
         if isinstance(building, Village):
-            if self.use_resources(Village.COST):
-                if self.buildings['villages'] < self.MAX_VILLAGES:
-                    self.buildings['villages'] += 1
-                    self.points += 1
-            else:
-                print('Not enough resources')
+            if board.check_build_possibility(node1, self.name, game_state):
+                if self.use_resources(Village.COST):
+                    if self.buildings['villages'] < self.MAX_VILLAGES:
+                        self.buildings['villages'] += 1
+                        self.points += 1
+                        board.assign_player_node(node1, self.name, 'village')
+                else:
+                    print('Not enough resources')
         elif isinstance(building, City):
-            if self.use_resources(City.COST):
-                if self.buildings['cities'] < self.MAX_CITIES and self.buildings['villages'] > 0:
-                    self.buildings['cities'] += 1
-                    self.buildings['villages'] -= 1
-                    self.points += 1
-                elif self.buildings['villages'] == 0:
-                    print('You dont have a village, cant built a city')
-            else:
-                print('Not enough resources')
+            if board.check_build_possibility(node1, self.name, game_state):
+                if self.use_resources(City.COST):
+                    if self.buildings['cities'] < self.MAX_CITIES and board.graph.nodes[node1]['building_type'] == 'village':
+                        self.buildings['cities'] += 1
+                        self.buildings['villages'] -= 1
+                        self.points += 1
+                        board.assign_player_node(node1, self.name, 'city')
+                    elif board.graph.nodes[node1]['building_type'] != 'village':
+                        print('You need to build a village first')
+                else:
+                    print('Not enough resources')
         elif isinstance(building, Road):    
-            if self.use_resources(Road.COST):
-                self.buildings['roads'] += 1
-                game_state.player_with_longest_roads_update(self)
-            else:
-                print('Not enough resources')
+            if board.check_road_possibility(node1, node2, self.name):
+                if self.use_resources(Road.COST):
+                    self.buildings['roads'] += 1
+                    board.assing_player_edge(node1, node2, self.name)
+                    game_state.player_with_longest_roads_update(self)
+                else:
+                    print('Not enough resources')
+        else:
+            print('Invalid building type')
     
     def add_card(self, deck: Deck) -> None:
         if self.use_resources(Card.COST):
@@ -85,6 +99,7 @@ class Player():
                 self.cards.append(card)
 
     def use_card(self, card_type, game_state, resource_monopoly = 0, resource_year_of_plenty = {}):
+            '''remember to change info about remainings cards in deck i.e. knights'''
             if len(self.cards) > 0:
                 self.cards.pop()
                 if isinstance(card_type, Knight):
