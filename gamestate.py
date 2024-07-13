@@ -6,14 +6,11 @@ class GameState():
         self.players = []
         self.round = 1
         self.player_with_longest_road = None
+        self.longest_road = 2
         self.player_with_most_knights = None
 
     def add_round(self) -> None:
         self.round +=1
-
-    def add_board(self) -> dict:
-        board = Board()
-        return board
     
     def add_player(self, name: str, color: str) -> None:
         new_player = Player(name, color)
@@ -30,14 +27,19 @@ class GameState():
     
     def get_player_with_most_knights(self) -> Player:
         return self.player_with_most_knights
+    
+    def player_with_longest_roads_update(self, board: Board,player: Player):   
+        _, road = board.find_longest_path_by_player(player)
 
-    def player_with_longest_roads_update(self, player: Player) -> None:        
-        if self.player_with_longest_road is None or player.get_buildings('roads') > self.player_with_longest_road.get_buildings('roads'):
-            old_player = self.player_with_longest_road
+        if road > player.longest_road:
+            player.longest_road = road
+
+        if road > self.longest_road and self.player_with_longest_road != player:
             self.player_with_longest_road = player
-            if old_player:
-                old_player.points -= 2
-            player.points += 2
+            self.longes_road = road
+        return road
+
+        
 
     def player_with_most_knights_update(self, player: Player) -> None:
         if self.player_with_most_knights is None or player.get_knights() > self.player_with_most_knights.get_knights():
