@@ -4,3 +4,8 @@ __pycache__/gamestate.cpython-311.pyc
 __pycache__/player.cpython-311.pyc
 __pycache__/strategy.cpython-311.pyc
 __pycache__/deck.cpython-311.pyc
+__pycache__/searching_for_numbers.cpython-311.pyc
+__pycache__/searching_for_resources.cpython-311.pyc
+.vs/slnx.sqlite-journal
+.vs/slnx.sqlite
+__pycache__/board.cpython-311.pyc

@@ -1,7 +1,6 @@
 from buildings import Building, Village, City, Road
 from cards import Card, Unknown, Knight, VictoryPoint, Monopoly, YearOfPlenty, RoadBuilding
 from deck import Deck
-from board import Board
 
 class Player():
     MAX_VILLAGES = 5
@@ -21,6 +20,7 @@ class Player():
         }
         self.resources = {'wood': 0, 'brick': 0, 'sheep': 0, 'grain': 0, 'ore': 0}
         self.cards = []
+        self.longest_road = 0
 
     def get_name(self) -> str:
         return self.name
@@ -34,7 +34,7 @@ class Player():
     def get_buildings(self, building) -> int:
         return self.buildings[building]
     
-    def get_recources(self) -> int:
+    def get_resources(self) -> int:
         return self.resources
     
     def get_knights(self) -> int:
@@ -43,60 +43,32 @@ class Player():
     def get_cards(self) -> list:
         return self.cards
     
+    def get_longest_road(self) -> int:
+        return self.longest_road
+    
     def add_resources(self, resource, quantity):
         '''Not sure if resources shouldn't be a different class'''
         if resource in self.resources:
             self.resources[resource] += quantity
     
-    def use_resources(self, resources_needed: dict) -> bool:
+    def have_enough_resources(self, resources_needed: dict) -> bool:
         for key, value in resources_needed.items():
             if self.resources[key] < value:              
                 return False
-        for key, value in self.resources.items():
+        return True
+    
+    def use_resources(self, resources_needed: dict) -> None:
+        for key, _ in self.resources.items():
             if key in resources_needed:
                 self.resources[key] -= resources_needed[key]
-        return True
-               
-    def add_building(self, building: Building, game_state, board: Board, node1, node2=0) -> None:
-        if isinstance(building, Village):
-            if board.check_build_possibility(node1, self.name, game_state):
-                if self.use_resources(Village.COST):
-                    if self.buildings['villages'] < self.MAX_VILLAGES:
-                        self.buildings['villages'] += 1
-                        self.points += 1
-                        board.assign_player_node(node1, self.name, 'village')
-                else:
-                    print('Not enough resources')
-        elif isinstance(building, City):
-            if board.check_build_possibility(node1, self.name, game_state):
-                if self.use_resources(City.COST):
-                    if self.buildings['cities'] < self.MAX_CITIES and board.graph.nodes[node1]['building_type'] == 'village':
-                        self.buildings['cities'] += 1
-                        self.buildings['villages'] -= 1
-                        self.points += 1
-                        board.assign_player_node(node1, self.name, 'city')
-                    elif board.graph.nodes[node1]['building_type'] != 'village':
-                        print('You need to build a village first')
-                else:
-                    print('Not enough resources')
-        elif isinstance(building, Road):    
-            if board.check_road_possibility(node1, node2, self.name):
-                if self.use_resources(Road.COST):
-                    self.buildings['roads'] += 1
-                    board.assing_player_edge(node1, node2, self.name)
-                    game_state.player_with_longest_roads_update(self)
-                else:
-                    print('Not enough resources')
-        else:
-            print('Invalid building type')
-    
+
     def add_card(self, deck: Deck) -> None:
         if self.use_resources(Card.COST):
             card = deck.get_card()
             if card is None:
                 print("There is no cards left in deck")
             else:
-                self.cards.append(card)
+                self.cards.append(card)               
 
     def use_card(self, card_type, game_state, resource_monopoly = 0, resource_year_of_plenty = {}):
             '''remember to change info about remainings cards in deck i.e. knights'''
