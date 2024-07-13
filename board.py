@@ -2,7 +2,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from searching_for_resources import board_resources
 from searching_for_numbers import board_numbers
-
+from buildings import Building, Village, City, Road
+from player import Player
+from collections import deque
 
 class Board():
     ROWS = 12
@@ -136,8 +138,7 @@ class Board():
         plt.figure(figsize=(12, 8))
         for shape in set(node_shapes):
             nx.draw(self.graph, pos, with_labels=True, node_color=[node_colors[i] for i in range(len(node_shapes)) if node_shapes[i] == shape], 
-                edge_color=edge_colors, node_size=500, font_size=10, font_color='black', nodelist=[node for i, node in enumerate(self.graph.nodes) if node_shapes[i] == shape], node_shape=shape)
-    
+                edge_color=edge_colors, node_size=500, font_size=10, font_color='black', nodelist=[node for i, node in enumerate(self.graph.nodes) if node_shapes[i] == shape], node_shape=shape) 
         plt.show()
 
     def get_hexagon(self, hex):
@@ -163,8 +164,9 @@ class Board():
     
     def check_build_possibility(self, node: int, player_name, gamestate) -> bool:
         from gamestate import GameState
-        if gamestate.round == 1:
+        if gamestate.round == 1: #### First 6 rounds have different rules
             return True
+        
         has_road = any(
             (node, neighbor) in self.graph.edges and self.graph.edges[node, neighbor].get('road') == player_name 
             for neighbor in self.graph.neighbors(node)
@@ -175,12 +177,16 @@ class Board():
             return False
 
         for neighbor in self.graph.neighbors(node):
-            if self.graph.nodes[neighbor]['building_type'] is not None:
+            if self.graph.nodes[neighbor]['building_type']:
                 print("There is already a building near")
                 return False
         return True
     
     def check_road_possibility(self, node1: int, node2: int, player_name) -> bool:
+        if self.graph.edges[node1, node2].get('road'):
+            print("There is a road already here")
+            return False
+
         if self.graph.nodes[node1]['player'] == player_name or self.graph.nodes[node2]['player'] == player_name:
             return True
         
@@ -191,15 +197,109 @@ class Board():
         for neighbor in self.graph.neighbors(node2)
         )
         if not has_road:
-            print("You dont have a road in near")
+            print("You dont have a roads nearby")
             return False
         return True
+    
+
+    def add_building(self, building: Building, game_state, player: Player, node1, node2=0):
+        if isinstance(building, Village):
+            if self.check_build_possibility(node1, player.name, game_state):                
+                if player.have_enough_resources(Village.COST):
+                    if player.buildings['villages'] < player.MAX_VILLAGES:
+                        player.use_resources(Village.COST)                   
+                        player.buildings['villages'] += 1
+                        player.points += 1
+                        self.assign_player_node(node1, player.name, 'village')
+                    else:
+                        return "You dont have any villages left"
+                else:
+                    return 'Not enough resources'
+
+        elif isinstance(building, City):
+            if self.check_build_possibility(node1, player.name, game_state): 
+                if player.have_enough_resources(City.COST):                  
+                    if player.buildings['cities'] < player.MAX_CITIES and self.graph.nodes[node1]['building_type'] == 'village':   
+                        player.use_resources(City.COST)           
+                        player.buildings['cities'] += 1
+                        player.buildings['villages'] -= 1
+                        player.points += 1
+                        self.assign_player_node(node1, player.name, 'city')
+                    elif self.graph.nodes[node1]['building_type'] != 'village':
+                        print('You need to build a village first')
+                else:
+                    print('Not enough resources')
+        elif isinstance(building, Road):    
+            if self.check_road_possibility(node1, node2, player.name):
+                if player.have_enough_resources(Road.COST):
+                    player.use_resources(Road.COST)
+                    player.buildings['roads'] += 1
+                    self.assing_player_edge(node1, node2, player.name)
+                    road = game_state.player_with_longest_roads_update(self, player)
+                    player.longest_road = road
+                else:
+                    print('Not enough resources')
+        else:
+            print('Invalid building type')
+
+        
+    def dfs_longest_path(self, graph, start, visited, current_length):
+        longest_path = []
+        longest_length = current_length
+
+        for neighbor in graph.neighbors(start):
+            if (start, neighbor) not in visited:
+                visited.add((start, neighbor))
+                visited.add((neighbor, start))
+                path, length = self.dfs_longest_path(graph, neighbor, visited, current_length + 1)
+                if length > longest_length:
+                    longest_path = path
+                    longest_length = length
+                # Remove edge from visited after the recursive call
+                visited.remove((start, neighbor))
+                visited.remove((neighbor, start))
+
+        return [start] + longest_path, longest_length
+    
+    def find_longest_path_in_component(self, graph, component):
+        longest_path = []
+        longest_length = 0
+        for node in component:
+            path, length = self.dfs_longest_path(graph, node, set(), 0)
+            if length > longest_length:
+                longest_path = path
+                longest_length = length
+        return longest_path, longest_length
+
+    def find_longest_path_by_player(self, player):
+        player_edges = [(u, v) for u, v, attr in self.graph.edges(data=True) if attr.get('road') == player.name]
+
+        if not player_edges:
+            return [], 0
+
+        player_graph = nx.Graph()
+        player_graph.add_edges_from(player_edges)
+
+        components = list(nx.connected_components(player_graph))
+        longest_path = []
+        longest_length = 0
+
+        for component in components:
+            path, length = self.find_longest_path_in_component(player_graph, component)
+            if length > longest_length:
+                longest_path = path
+                longest_length = length
+
+        return longest_path, longest_length
 
 
-
-                
-
-
-
-
-
+    # method prints longest path of given tree
+    '''def LongestPathLength(self):
+ 
+        # first DFS to find one end point of longest path
+        node, _ = self.BFS(0)
+ 
+        # second DFS to find the actual longest path
+        node_2, long_dis  = self.BFS(node)
+ 
+        print('Longest path is from', node, 'to', node_2, 'of length', long_dis )'''
