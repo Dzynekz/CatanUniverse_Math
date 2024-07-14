@@ -3,6 +3,8 @@ import math
 import numpy as np
 import pandas as pd
 from deck import Deck
+from board import Board
+from player import Player
 
 def number_of_attempts_needed(cards_of_type, all_cards):
     x = cards_of_type/ all_cards
@@ -13,14 +15,14 @@ def knights_probability(deck: Deck) -> int:
     cards = deck.get_number_of_cards()
     knights = deck.get_number_of_knights()
     answer = number_of_attempts_needed(knights,cards)
-    print('probablity of knight: ' + str(answer))
+    #print('probablity of knight: ' + str(answer))
     return answer
 
 def vp_probability(deck: Deck) -> int:
     cards = deck.get_number_of_cards()
     vp = deck.get_number_of_vp()
     answer = number_of_attempts_needed(vp,cards)
-    print('probablity of vp: ' + str(answer))
+    #print('probablity of vp: ' + str(answer))
     return answer
 
 def combination_of_possible_wins():
@@ -70,7 +72,7 @@ def removing_worse_wins(df):
     df = df.drop(drop)
     return df
 
-def resources_drop_chance(board: dict) -> dict:
+def resources_drop_chance(board: Board) -> dict:
     probabilities = {
         2: 1/36,
         3: 2/36,
@@ -85,25 +87,72 @@ def resources_drop_chance(board: dict) -> dict:
         12: 1/36
     }
     resource_probability = {}
-    for resource, numbers in board.items():
-        resource_probability[resource] = sum(probabilities[number] for number in numbers)
+    for _, details in board.hexagons.items():   
+        resource = details['resource']
+        number = details['number']
+        if resource != 'desert':
+            if resource not in resource_probability:
+                resource_probability[resource] = 0        
+            resource_probability[resource] += probabilities.get(int(number))
     return resource_probability
 
+def update_resource_probability_for_player(board: Board, node: int, player: Player):
+    probabilities = {
+        2: 1/36,
+        3: 2/36,
+        4: 3/36,
+        5: 4/36,
+        6: 5/36,
+        7: 6/36,
+        8: 5/36,
+        9: 4/36,
+        10: 3/36,
+        11: 2/36,
+        12: 1/36
+    }
+    
+    building_type = board.graph.nodes[node]['building_type']
+    multiplier = 2 if building_type == 'city' else 1
+    
+    for hexagon, details in board.hexagons.items():
+        resource = details['resource']
+        number = details['number']
+        
+        if resource != 'desert' and node in details['fields']:
+            player.resource_probability[resource] += probabilities[int(number)] * multiplier
+    return player.resource_probability
+
+
 def calculate_rounds_needed(df, resource_probabilities: dict):
-    '''It needs to calculate not only on drop probability, but also ??? on availability of trading with bank (4:1) and other players.'''
-    rounds_needed = []
-    for _, row in df.iterrows():
-        rounds_for_resource = []
-        for resource, probability in resource_probabilities.items():
-            rounds_for_resource.append(row[resource] / probability)
-        rounds_needed.append(math.ceil(max(rounds_for_resource)))
-    df['rounds_needed'] = rounds_needed
+    '''It needs to calculate not only on drop probability, but also ??? availability of trading with bank (4:1) and other players.'''
+    rounds_needed_list = []
+    for index, row in df.iterrows():
+        
+        resource_exchange = {'wood': 0, 'brick': 0, 'grain': 0, 'sheep': 0, 'ore': 0}
+        rounds_needed = 0
+
+        while any(resource_exchange[resource] < row[resource] for resource in resource_exchange):
+            rounds_needed += 1
+            for resource, probability in resource_probabilities.items():
+                resource_exchange[resource] += probability
+            
+            for resource in resource_exchange:
+                if resource_exchange[resource] >= row[resource]:
+                    excess_resources = resource_exchange[resource] - row[resource]
+                    while excess_resources >= 4:
+                        resource_exchange[resource] -= 4
+                        most_needed_resource = max(resource_exchange.keys(), key=lambda r: row[r] - resource_exchange[r])
+                        resource_exchange[most_needed_resource] += 1
+                        excess_resources -= 4
+
+        rounds_needed_list.append(rounds_needed)
+    df['rounds_needed'] = rounds_needed_list
     return df
 
 def select_top_percent_possible_wins(df):
-    treshold = df['rounds_needed'].quantile(0.1)
-    top10 = df[df['rounds_needed'] <= treshold]
-    return top10
+    treshold = df['rounds_needed'].quantile(0.2)
+    top = df[df['rounds_needed'] <= treshold]
+    return top
 
 def calculate_importance_of_resources(df, drop_chance: dict):
     '''Dont know if its working how it should'''
@@ -119,8 +168,7 @@ def calculate_importance_of_resources(df, drop_chance: dict):
     for resource in resources_used.keys():
         if resource != 'used_resources':
             # Here is a line that I am not sure about
-            resources_importance[resource] = (resources_used[resource] / resources_used['used_resources']) * (drop_chance[resource] / total_drop_chance)
-    
+            resources_importance[resource] = (resources_used[resource] / resources_used['used_resources']) * (drop_chance[resource] / total_drop_chance) 
     return resources_importance
     
 
