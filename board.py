@@ -146,17 +146,19 @@ class Board():
                 if key == hex:
                     print(f'{key}: {value}')
     
-    def assign_player_node(self, node: int, player_name, building_type):
-        if (self.graph.nodes[node]['player'] == None) or (self.graph.nodes[node]['player'] == player_name and building_type == 'city'):
-            self.graph.nodes[node]['player'] = player_name 
+    def assign_player_node(self, node: int, player, building_type):
+        import strategy
+        if (self.graph.nodes[node]['player'] is None) or (self.graph.nodes[node]['player'] == player.name and building_type == 'city'):
+            self.graph.nodes[node]['player'] = player.name
             self.graph.nodes[node]['building_type'] = building_type
+            strategy.update_resource_probability_for_player(self, node, player)
         else:
             print("Someone already took it!")
 
-    def assing_player_edge(self, node1: int, node2: int, player_name):
+    def assing_player_edge(self, node1: int, node2: int, player):
         if (node1, node2) in self.graph.edges or (node2, node1) in self.graph.edges:
             if self.graph.edges[node1, node2].get('road') is None:
-                self.graph.edges[node1, node2]['road'] = player_name
+                self.graph.edges[node1, node2]['road'] = player.name
             else:
                 print("Someone already took it!")
         else:
@@ -210,7 +212,7 @@ class Board():
                         player.use_resources(Village.COST)                   
                         player.buildings['villages'] += 1
                         player.points += 1
-                        self.assign_player_node(node1, player.name, 'village')
+                        self.assign_player_node(node1, player, 'village')
                     else:
                         return "You dont have any villages left"
                 else:
@@ -224,7 +226,7 @@ class Board():
                         player.buildings['cities'] += 1
                         player.buildings['villages'] -= 1
                         player.points += 1
-                        self.assign_player_node(node1, player.name, 'city')
+                        self.assign_player_node(node1, player, 'city')
                     elif self.graph.nodes[node1]['building_type'] != 'village':
                         print('You need to build a village first')
                 else:
@@ -234,7 +236,7 @@ class Board():
                 if player.have_enough_resources(Road.COST):
                     player.use_resources(Road.COST)
                     player.buildings['roads'] += 1
-                    self.assing_player_edge(node1, node2, player.name)
+                    self.assing_player_edge(node1, node2, player)
                     road = game_state.player_with_longest_roads_update(self, player)
                     player.longest_road = road
                 else:

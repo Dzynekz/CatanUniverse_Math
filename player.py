@@ -20,6 +20,7 @@ class Player():
         }
         self.resources = {'wood': 0, 'brick': 0, 'sheep': 0, 'grain': 0, 'ore': 0}
         self.cards = []
+        self.resource_probability = {'wood': 0, 'brick': 0, 'sheep': 0, 'grain': 0, 'ore': 0}
         self.longest_road = 0
 
     def get_name(self) -> str:
